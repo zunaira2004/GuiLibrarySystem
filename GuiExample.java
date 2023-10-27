@@ -1,11 +1,15 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.TableView;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.awt.event.MouseEvent;
+import java.io.*;
+import java.util.ArrayList;
+import java.awt.Color;
+import java.awt.event.MouseMotionListener;
+import java.util.Arrays;
 
 
 public class GuiExample extends JFrame {
@@ -27,11 +31,12 @@ public class GuiExample extends JFrame {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] data = line.split(",");
-                tableModel.addRow(new Object[]{data[0], data[1], data[2], data[3]});
+                tableModel.addRow(new Object[]{data[0], data[1], data[2]});
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
 
         table = new JTable(tableModel);
 
@@ -114,6 +119,17 @@ public class GuiExample extends JFrame {
                 DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
                 tableModel.addRow(new Object[]{title, author, publicationYear, "read"});
                 dialog.dispose();
+
+                try {
+                    BufferedWriter writer=new BufferedWriter(new FileWriter("books.txt",true));
+                    writer.newLine();
+                    writer.write(titleField.getText()+","+authorField.getText()+","+publicationYearField.getText()+",read");
+                    writer.close();
+                }
+                catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+
             }
         });
 
@@ -129,6 +145,8 @@ public class GuiExample extends JFrame {
 
         dialog.pack();
         dialog.setVisible(true);
+
+
     }
 
     private void showDeleteItemDialog() {
@@ -154,6 +172,34 @@ public class GuiExample extends JFrame {
                         tableModel.removeRow(i);
                         break;
                     }
+                }
+
+
+                BufferedWriter writer = null;
+                try {
+                    writer = new BufferedWriter(new FileWriter("books.txt", false));
+
+                    writer.write("");
+                    writer.close();
+                }
+                catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                for (int i = 0; i < table.getRowCount(); i++) {
+                    String t= (String) tableModel.getValueAt(i,0);
+                    String A= (String) tableModel.getValueAt(i,1);
+                    String P= (String) tableModel.getValueAt(i,2);
+
+                    try {
+                        writer = new BufferedWriter(new FileWriter("books.txt", true));
+                        writer.write(t+","+A+","+P);
+                        writer.newLine();
+                        writer.close();
+                    }
+                    catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+
                 }
 
                 dialog.dispose();
@@ -223,6 +269,10 @@ public class GuiExample extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(4, 2));
 
+        String oldTitle= (String) tableModel.getValueAt(row,0);
+        String oldAuthor=(String) tableModel.getValueAt(row,1);
+        String oldPublication=(String) tableModel.getValueAt(row,2);
+
         JLabel titleLabel = new JLabel("Title:");
         JTextField titleField = new JTextField((String) tableModel.getValueAt(row, 0));
 
@@ -251,6 +301,35 @@ public class GuiExample extends JFrame {
                     tableModel.setValueAt(publicationYear, row, 2);
                 }
 
+                BufferedWriter writer=null;
+                try {
+                    writer = new BufferedWriter(new FileWriter("books.txt", false));
+
+                    writer.write("");
+                    writer.close();
+                }
+                catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+                for (int i = 0; i < table.getRowCount(); i++)
+                {
+                    String t= (String) tableModel.getValueAt(i,0);
+                    String A= (String) tableModel.getValueAt(i,1);
+                    String P= (String) tableModel.getValueAt(i,2);
+
+                    try {
+                        writer = new BufferedWriter(new FileWriter("books.txt", true));
+                        writer.write(t+","+A+","+P);
+                        if(i-1!=table.getRowCount())
+                        writer.newLine();
+                        writer.close();
+                    }
+                    catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+
+                }
+
                 dialog.dispose();
             }
         });
@@ -270,10 +349,8 @@ public class GuiExample extends JFrame {
         dialog.setVisible(true);
     }
 
-
-
-
     public static void main(String[] args) {
         new GuiExample();
     }
+
 }
