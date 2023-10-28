@@ -11,7 +11,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.List;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.ui.RefineryUtilities;
 
 public class LibrarySystem extends JFrame{
 
@@ -71,24 +75,35 @@ public class LibrarySystem extends JFrame{
         popularityButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                JFreeChart chart = createPopularityPieChart();
+                ChartPanel chartPanel = new ChartPanel(chart);
+                chartPanel.setBackground(Color.BLACK);
+                JFrame frame = new JFrame("Popularity Chart");
+                frame.add(chartPanel);
+                frame.pack();
+                RefineryUtilities.centerFrameOnScreen(frame);
+                frame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        frame.dispose();
+                    }
+                });
+                frame.setVisible(true);
             }
         });
         table.addMouseMotionListener(new MouseAdapter() {
             @Override
-            public void mouseMoved(MouseEvent e)
-            {
-                int row = table.rowAtPoint(e.getPoint());
-                if (row != 0)
-                {
-                    table.getSelectionModel().setSelectionInterval(row, row);
+            public void mouseMoved(MouseEvent mouseEvent) {
+                int currentRow = table.rowAtPoint(mouseEvent.getPoint());
+                if (currentRow != 0) {
+                    table.getSelectionModel().setSelectionInterval(currentRow, currentRow);
                     table.setSelectionBackground(Color.green);
-                }
-                else
-                {
+                } else {
                     table.getSelectionModel().clearSelection();
                 }
             }
         });
+
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(addButton);
@@ -106,6 +121,18 @@ public class LibrarySystem extends JFrame{
         pack();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
+    }
+
+    private JFreeChart createPopularityPieChart()
+    {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        for(int i=0;i<tableModel.getRowCount();i++)
+        {
+            dataset.setValue((Comparable) tableModel.getValueAt(i,0), popularityCount.get(i));
+        }
+
+        JFreeChart chart = ChartFactory.createPieChart("Popularity Count of books", dataset);
+        return chart;
     }
 
     private void showAddItemDialog() {
@@ -406,19 +433,16 @@ public class LibrarySystem extends JFrame{
             System.out.println(popularityCount.get(i)+" ");
         }
     }
+    public static JTable getTable() {
+        return table;
+    }
     public static DefaultTableModel getTableModel() {
         return tableModel;
     }
 
-    public static JTable getTable() {
-        return table;
-    }
-
-
     public static void main(String[] args) {
         new LibrarySystem();
     }
-
 }
 
 class RenderButtonForTable extends JButton implements TableCellRenderer
@@ -437,33 +461,35 @@ class RenderButtonForTable extends JButton implements TableCellRenderer
 
 class ButtonEditorForTable extends DefaultCellEditor
 {
-    private final JButton button;
+    private final JButton customButton;
     private String label;
     private boolean isPushed;
     private DefaultTableModel tableModel;
     private JTable table;
 
-    public ButtonEditorForTable(JTextField textField) {
-        super(textField);
-        button = new JButton();
-        button.setOpaque(true);
+    public ButtonEditorForTable(JTextField inputTextField) {
+        super(inputTextField);
+        customButton = new JButton();
+        customButton.setOpaque(true);
+
         setTable();
         setTableModel();
-        button.addActionListener(new ActionListener() {
+
+        customButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int selectedRow = table.convertRowIndexToModel(table.getEditingRow());
-                String selectedItemTitle = tableModel.getValueAt(selectedRow, 0).toString();
+                String rowTitle = tableModel.getValueAt(selectedRow, 0).toString();
 
-                JFrame readingFrame = new JFrame(selectedItemTitle);
-                readingFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                JFrame viewFrame = new JFrame(rowTitle);
+                viewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
                 JTextArea textArea = new JTextArea(20, 40);
                 textArea.setWrapStyleWord(true);
                 textArea.setLineWrap(true);
                 JScrollPane scrollPane = new JScrollPane(textArea);
 
-                try (BufferedReader reader = new BufferedReader(new FileReader(selectedItemTitle + ".txt"))) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(rowTitle + ".txt"))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         textArea.append(line + "\n");
@@ -471,59 +497,47 @@ class ButtonEditorForTable extends DefaultCellEditor
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-
-                readingFrame.add(scrollPane);
-                readingFrame.addWindowListener(new WindowAdapter() {
+                viewFrame.add(scrollPane);
+                viewFrame.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
-                        int confirm = JOptionPane.showConfirmDialog(readingFrame, "Are you sure you want to stop reading this item?", "Confirmation", JOptionPane.YES_NO_OPTION);
-                        if (confirm == JOptionPane.YES_OPTION) {
-                            readingFrame.dispose();
-                        }
-                        else {
-                            readingFrame.setDefaultCloseOperation(readingFrame.DO_NOTHING_ON_CLOSE);
-                        }
+                        viewFrame.dispose();
                     }
                 });
 
-                readingFrame.pack();
-                readingFrame.setVisible(true);
+                viewFrame.pack();
+                viewFrame.setVisible(true);
             }
         });
+
+    }
+    public void setTable() {
+        this.table = LibrarySystem.getTable();
     }
     public void setTableModel() {
         this.tableModel = LibrarySystem.getTableModel();
     }
 
-    public void setTable() {
-        this.table = LibrarySystem.getTable();
-    }
-
-
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
         if (isSelected)
         {
-            button.setForeground(table.getSelectionForeground());
-            button.setBackground(table.getSelectionBackground());
+            customButton.setForeground(table.getSelectionForeground());
+            customButton.setBackground(table.getSelectionBackground());
         } else
         {
-            button.setForeground(table.getForeground());
-            button.setBackground(table.getBackground());
+            customButton.setForeground(table.getForeground());
+            customButton.setBackground(table.getBackground());
         }
         label = (value == null) ? "" : value.toString();
-        button.setText(label);
+        customButton.setText(label);
         isPushed = true;
-        return button;
+        return customButton;
     }
 
     @Override
     public Object getCellEditorValue()
     {
-        if (isPushed)
-        {
-
-        }
         isPushed = false;
         return label;
     }
