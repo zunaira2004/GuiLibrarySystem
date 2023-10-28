@@ -1,12 +1,17 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.awt.Color;
-import java.util.Scanner;
 
-public class GuiExample extends JFrame{
+public class LibrarySystem extends JFrame{
 
     private JTable table;
     private JButton addButton;
@@ -15,7 +20,7 @@ public class GuiExample extends JFrame{
     private JButton popularityButton;
     private int buttonReadCount;
 
-    public GuiExample() {
+    public LibrarySystem() {
         super("GUI Example");
 
         buttonReadCount=0;
@@ -40,6 +45,9 @@ public class GuiExample extends JFrame{
         editButton = new JButton("Edit");
         popularityButton=new JButton("Popularity count");
 
+        table.getColumnModel().getColumn(3).setCellRenderer(new RenderButtonForTable());
+        table.getColumnModel().getColumn(3).setCellEditor(new ButtonEditorForTable(new JTextField()));
+
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -63,6 +71,22 @@ public class GuiExample extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
 
+            }
+        });
+        table.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e)
+            {
+                int row = table.rowAtPoint(e.getPoint());
+                if (row != 0)
+                {
+                    table.getSelectionModel().setSelectionInterval(row, row);
+                    table.setSelectionBackground(Color.green);
+                }
+                else
+                {
+                    table.getSelectionModel().clearSelection();
+                }
             }
         });
 
@@ -366,7 +390,74 @@ public class GuiExample extends JFrame{
     }
 
     public static void main(String[] args) {
-        new GuiExample();
+        new LibrarySystem();
     }
 
+}
+
+class RenderButtonForTable extends JButton implements TableCellRenderer
+{
+    public RenderButtonForTable()
+    {
+        setOpaque(true);
+    }
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+        setText("read");
+        return this;
+    }
+}
+
+class ButtonEditorForTable extends DefaultCellEditor
+{
+    private final JButton button;
+    private String label;
+    private boolean isPushed;
+
+    public ButtonEditorForTable(JTextField textField)
+    {
+        super(textField);
+        button = new JButton();
+        button.setOpaque(true);
+        button.addActionListener((ActionEvent e) ->
+        {
+            fireEditingStopped();
+        });
+    }
+
+    @Override
+    public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+        if (isSelected)
+        {
+            button.setForeground(table.getSelectionForeground());
+            button.setBackground(table.getSelectionBackground());
+        } else
+        {
+            button.setForeground(table.getForeground());
+            button.setBackground(table.getBackground());
+        }
+        label = (value == null) ? "" : value.toString();
+        button.setText(label);
+        isPushed = true;
+        return button;
+    }
+
+    @Override
+    public Object getCellEditorValue()
+    {
+        if (isPushed)
+        {
+
+        }
+        isPushed = false;
+        return label;
+    }
+
+    @Override
+    public boolean stopCellEditing()
+    {
+        isPushed = false;
+        return super.stopCellEditing();
+    }
 }
