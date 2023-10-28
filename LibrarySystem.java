@@ -10,34 +10,34 @@ import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LibrarySystem extends JFrame{
 
-    private JTable table;
+    private static JTable table;
     private JButton addButton;
     private JButton deleteButton;
     private JButton editButton;
     private JButton popularityButton;
-    private int buttonReadCount;
+    private static DefaultTableModel tableModel;
+    ArrayList<Integer> popularityCount=new ArrayList<Integer>();
 
     public LibrarySystem() {
         super("GUI Example");
 
-        buttonReadCount=0;
-        DefaultTableModel tableModel = new DefaultTableModel(new String[]{"Title", "Author", "Publication Year", "Read Item"}, 0);
+        tableModel = new DefaultTableModel(new String[]{"Title", "Author", "Publication Year", "Read Item"}, 0);
 
         try (BufferedReader reader = new BufferedReader(new FileReader("books.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                JButton readbutton=new JButton("Read");
                 String[] data = line.split(",");
-                tableModel.addRow(new Object[]{data[0], data[1], data[2], readbutton});
+                tableModel.addRow(new Object[]{data[0], data[1], data[2]});
+                popularityCount.add(Integer.valueOf(data[3].trim()));
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
         table = new JTable(tableModel);
 
         addButton = new JButton("Add");
@@ -47,6 +47,7 @@ public class LibrarySystem extends JFrame{
 
         table.getColumnModel().getColumn(3).setCellRenderer(new RenderButtonForTable());
         table.getColumnModel().getColumn(3).setCellEditor(new ButtonEditorForTable(new JTextField()));
+
 
         addButton.addActionListener(new ActionListener() {
             @Override
@@ -70,7 +71,6 @@ public class LibrarySystem extends JFrame{
         popularityButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
             }
         });
         table.addMouseMotionListener(new MouseAdapter() {
@@ -96,7 +96,6 @@ public class LibrarySystem extends JFrame{
         buttonPanel.add(editButton);
         buttonPanel.add(popularityButton);
 
-        // Create the main panel
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -114,7 +113,7 @@ public class LibrarySystem extends JFrame{
         dialog.setLayout(new BorderLayout());
 
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(3, 2));
+        panel.setLayout(new GridLayout(4, 2));
 
         JLabel titleLabel = new JLabel("Title:");
         JTextField titleField = new JTextField();
@@ -125,6 +124,9 @@ public class LibrarySystem extends JFrame{
         JLabel publicationYearLabel = new JLabel("Publication Year:");
         JTextField publicationYearField = new JTextField();
 
+        JLabel popularitylabel=new JLabel("Popularity count");
+        JTextField popularityField=new JTextField();
+
         JButton addButton = new JButton("Add");
         addButton.addActionListener(new ActionListener()
         {
@@ -133,16 +135,18 @@ public class LibrarySystem extends JFrame{
                 String title = titleField.getText();
                 String author = authorField.getText();
                 String publicationYear = publicationYearField.getText();
+                int popularity= Integer.parseInt(popularityField.getText());
+                popularityCount.add(popularity);
+                display();
 
-                // Add the item to the table model
                 DefaultTableModel tableModel = (DefaultTableModel) table.getModel();
-                tableModel.addRow(new Object[]{title, author, publicationYear, "read"});
+                tableModel.addRow(new Object[]{title, author, publicationYear});
                 dialog.dispose();
 
                 try {
                     BufferedWriter writer=new BufferedWriter(new FileWriter("books.txt",true));
                     writer.newLine();
-                    writer.write(titleField.getText()+","+authorField.getText()+","+publicationYearField.getText()+",read");
+                    writer.write(titleField.getText()+","+authorField.getText()+","+publicationYearField.getText()+","+popularityField.getText());
                     writer.close();
                 }
                 catch (IOException ex) {
@@ -174,6 +178,8 @@ public class LibrarySystem extends JFrame{
         panel.add(authorField);
         panel.add(publicationYearLabel);
         panel.add(publicationYearField);
+        panel.add(popularitylabel);
+        panel.add(popularityField);
 
         dialog.add(panel, BorderLayout.CENTER);
         dialog.add(addButton, BorderLayout.SOUTH);
@@ -205,9 +211,11 @@ public class LibrarySystem extends JFrame{
                 for (int i = 0; i < tableModel.getRowCount(); i++) {
                     if (title.equals(tableModel.getValueAt(i, 0))) {
                         tableModel.removeRow(i);
+                        popularityCount.remove(i);
                         break;
                     }
                 }
+                display();
 
                 BufferedWriter writer = null;
                 try {
@@ -226,7 +234,7 @@ public class LibrarySystem extends JFrame{
 
                     try {
                         writer = new BufferedWriter(new FileWriter("books.txt", true));
-                        writer.write(t+","+A+","+P);
+                        writer.write(t+","+A+","+P+","+popularityCount.get(i));
                         writer.newLine();
                         writer.close();
                     }
@@ -279,7 +287,6 @@ public class LibrarySystem extends JFrame{
                         break;
                     }
                 }
-
                 if (row >= 0) {
                     showEditItemDetailsDialog(tableModel, row);
                 }
@@ -290,7 +297,7 @@ public class LibrarySystem extends JFrame{
 
         panel.add(titleLabel);
         panel.add(titleField);
-        panel.add(new JPanel()); // Filler panel
+        panel.add(new JPanel());
         panel.add(editButton);
 
         dialog.add(panel, BorderLayout.CENTER);
@@ -304,7 +311,7 @@ public class LibrarySystem extends JFrame{
         dialog.setLayout(new BorderLayout());
 
         JPanel panel = new JPanel();
-        panel.setLayout(new GridLayout(4, 2));
+        panel.setLayout(new GridLayout(5, 2));
 
         JLabel titleLabel = new JLabel("Title:");
         JTextField titleField = new JTextField((String) tableModel.getValueAt(row, 0));
@@ -317,10 +324,15 @@ public class LibrarySystem extends JFrame{
         JLabel publicationYearLabel = new JLabel("Publication Year:");
         JTextField publicationYearField = new JTextField((String) tableModel.getValueAt(row, 2));
 
+        JLabel popularityLabel=new JLabel("Popularity Count:");
+        JTextField popularityField=new JTextField((int) popularityCount.get(row));
+
         JButton editButton = new JButton("Edit");
         editButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                popularityCount.remove(row);
+                popularityCount.add(row, Integer.valueOf(popularityField.getText()));
                 String title=titleField.getText();
                 String author = authorField.getText();
                 String publicationYear = publicationYearField.getText();
@@ -338,7 +350,6 @@ public class LibrarySystem extends JFrame{
                 BufferedWriter writer=null;
                 try {
                     writer = new BufferedWriter(new FileWriter("books.txt", false));
-
                     writer.write("");
                     writer.close();
                 }
@@ -353,7 +364,7 @@ public class LibrarySystem extends JFrame{
 
                     try {
                         writer = new BufferedWriter(new FileWriter("books.txt", true));
-                        writer.write(t+","+A+","+P);
+                        writer.write(t+","+A+","+P+","+popularityCount.get(i));
                         if(i-1!=table.getRowCount())
                               writer.newLine();
                         writer.close();
@@ -368,8 +379,6 @@ public class LibrarySystem extends JFrame{
                 if (file.exists()) {
                     file.renameTo(new File(title + ".txt"));
                 }
-
-
                 dialog.dispose();
             }
         });
@@ -380,6 +389,8 @@ public class LibrarySystem extends JFrame{
         panel.add(authorField);
         panel.add(publicationYearLabel);
         panel.add(publicationYearField);
+        panel.add(popularityLabel);
+        panel.add(popularityField);
         panel.add(new JPanel()); // Filler panel
         panel.add(editButton);
 
@@ -388,6 +399,21 @@ public class LibrarySystem extends JFrame{
         dialog.pack();
         dialog.setVisible(true);
     }
+    public void display()
+    {
+        for(int i=0;i<popularityCount.size();i++)
+        {
+            System.out.println(popularityCount.get(i)+" ");
+        }
+    }
+    public static DefaultTableModel getTableModel() {
+        return tableModel;
+    }
+
+    public static JTable getTable() {
+        return table;
+    }
+
 
     public static void main(String[] args) {
         new LibrarySystem();
@@ -414,17 +440,65 @@ class ButtonEditorForTable extends DefaultCellEditor
     private final JButton button;
     private String label;
     private boolean isPushed;
+    private DefaultTableModel tableModel;
+    private JTable table;
 
-    public ButtonEditorForTable(JTextField textField)
-    {
+    public ButtonEditorForTable(JTextField textField) {
         super(textField);
         button = new JButton();
         button.setOpaque(true);
-        button.addActionListener((ActionEvent e) ->
-        {
-            fireEditingStopped();
+        setTable();
+        setTableModel();
+        button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = table.convertRowIndexToModel(table.getEditingRow());
+                String selectedItemTitle = tableModel.getValueAt(selectedRow, 0).toString();
+
+                JFrame readingFrame = new JFrame(selectedItemTitle);
+                readingFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+                JTextArea textArea = new JTextArea(20, 40);
+                textArea.setWrapStyleWord(true);
+                textArea.setLineWrap(true);
+                JScrollPane scrollPane = new JScrollPane(textArea);
+
+                try (BufferedReader reader = new BufferedReader(new FileReader(selectedItemTitle + ".txt"))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        textArea.append(line + "\n");
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+
+                readingFrame.add(scrollPane);
+                readingFrame.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        int confirm = JOptionPane.showConfirmDialog(readingFrame, "Are you sure you want to stop reading this item?", "Confirmation", JOptionPane.YES_NO_OPTION);
+                        if (confirm == JOptionPane.YES_OPTION) {
+                            readingFrame.dispose();
+                        }
+                        else {
+                            readingFrame.setDefaultCloseOperation(readingFrame.DO_NOTHING_ON_CLOSE);
+                        }
+                    }
+                });
+
+                readingFrame.pack();
+                readingFrame.setVisible(true);
+            }
         });
     }
+    public void setTableModel() {
+        this.tableModel = LibrarySystem.getTableModel();
+    }
+
+    public void setTable() {
+        this.table = LibrarySystem.getTable();
+    }
+
 
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
