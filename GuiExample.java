@@ -1,37 +1,32 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.text.TableView;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
-import java.util.ArrayList;
 import java.awt.Color;
-import java.awt.event.MouseMotionListener;
-import java.util.Arrays;
+import java.util.Scanner;
 
-
-public class GuiExample extends JFrame {
+public class GuiExample extends JFrame{
 
     private JTable table;
     private JButton addButton;
     private JButton deleteButton;
     private JButton editButton;
     private JButton popularityButton;
+    private int buttonReadCount;
 
     public GuiExample() {
         super("GUI Example");
 
-        // Create the table model
+        buttonReadCount=0;
         DefaultTableModel tableModel = new DefaultTableModel(new String[]{"Title", "Author", "Publication Year", "Read Item"}, 0);
 
-        // Read data from file and add to table model
         try (BufferedReader reader = new BufferedReader(new FileReader("books.txt"))) {
             String line;
             while ((line = reader.readLine()) != null) {
+                JButton readbutton=new JButton("Read");
                 String[] data = line.split(",");
-                tableModel.addRow(new Object[]{data[0], data[1], data[2]});
+                tableModel.addRow(new Object[]{data[0], data[1], data[2], readbutton});
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -75,6 +70,7 @@ public class GuiExample extends JFrame {
         buttonPanel.add(addButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(editButton);
+        buttonPanel.add(popularityButton);
 
         // Create the main panel
         JPanel mainPanel = new JPanel();
@@ -82,10 +78,8 @@ public class GuiExample extends JFrame {
         mainPanel.add(new JScrollPane(table), BorderLayout.CENTER);
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Add the main panel to the frame
         setContentPane(mainPanel);
 
-        // Set the frame properties
         pack();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
@@ -108,7 +102,8 @@ public class GuiExample extends JFrame {
         JTextField publicationYearField = new JTextField();
 
         JButton addButton = new JButton("Add");
-        addButton.addActionListener(new ActionListener() {
+        addButton.addActionListener(new ActionListener()
+        {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String title = titleField.getText();
@@ -130,8 +125,24 @@ public class GuiExample extends JFrame {
                     throw new RuntimeException(ex);
                 }
 
+                File file = new File(title + ".txt");
+
+                if (file.exists()) {
+                    file.delete();
+                }
+
+                FileWriter writer = null;
+                try {
+                    writer = new FileWriter(file);
+                    writer.close();
+                }
+                catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
-        });
+        }
+        );
+
 
         panel.add(titleLabel);
         panel.add(titleField);
@@ -146,8 +157,8 @@ public class GuiExample extends JFrame {
         dialog.pack();
         dialog.setVisible(true);
 
-
     }
+
 
     private void showDeleteItemDialog() {
         JDialog dialog = new JDialog(this, "Delete Item");
@@ -174,7 +185,6 @@ public class GuiExample extends JFrame {
                     }
                 }
 
-
                 BufferedWriter writer = null;
                 try {
                     writer = new BufferedWriter(new FileWriter("books.txt", false));
@@ -199,9 +209,12 @@ public class GuiExample extends JFrame {
                     catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-
                 }
+                File file = new File(title + ".txt");
 
+                if (file.exists()) {
+                    file.delete();
+                }
                 dialog.dispose();
             }
         });
@@ -269,12 +282,10 @@ public class GuiExample extends JFrame {
         JPanel panel = new JPanel();
         panel.setLayout(new GridLayout(4, 2));
 
-        String oldTitle= (String) tableModel.getValueAt(row,0);
-        String oldAuthor=(String) tableModel.getValueAt(row,1);
-        String oldPublication=(String) tableModel.getValueAt(row,2);
-
         JLabel titleLabel = new JLabel("Title:");
         JTextField titleField = new JTextField((String) tableModel.getValueAt(row, 0));
+
+        String oldTitle= (String) tableModel.getValueAt(row,0);
 
         JLabel authorLabel = new JLabel("Author:");
         JTextField authorField = new JTextField((String) tableModel.getValueAt(row, 1));
@@ -290,7 +301,6 @@ public class GuiExample extends JFrame {
                 String author = authorField.getText();
                 String publicationYear = publicationYearField.getText();
 
-                // Edit the item in the table model
                 if (!title.isEmpty()) {
                     tableModel.setValueAt(title, row, 0);
                 }
@@ -321,14 +331,20 @@ public class GuiExample extends JFrame {
                         writer = new BufferedWriter(new FileWriter("books.txt", true));
                         writer.write(t+","+A+","+P);
                         if(i-1!=table.getRowCount())
-                        writer.newLine();
+                              writer.newLine();
                         writer.close();
                     }
                     catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
-
                 }
+
+                File file = new File(oldTitle + ".txt");
+
+                if (file.exists()) {
+                    file.renameTo(new File(title + ".txt"));
+                }
+
 
                 dialog.dispose();
             }
